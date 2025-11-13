@@ -1,32 +1,34 @@
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue';
-import { Head, router, usePage } from '@inertiajs/vue3';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import api from '@/lib/api';
+import { ref, reactive, onMounted, computed } from "vue";
+import { Head, router, usePage } from "@inertiajs/vue3";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
+import api from "@/lib/api";
 
 const page = usePage();
-const isSuperAdmin = computed(() => page.props.auth?.user?.role === 'super-admin');
+const isSuperAdmin = computed(
+    () => page.props.auth?.user?.role === "super-admin"
+);
 
 const loading = ref(false);
 const books = ref([]);
 const pagination = ref(null);
 
 const filters = reactive({
-    search: '',
+    search: "",
     page: 1,
     limit: 10,
 });
 
 const fileInput = ref(null);
 const newBook = reactive({
-    title: '',
+    title: "",
     file: null,
 });
 
 const fetchBooks = async () => {
     loading.value = true;
     try {
-        const { data } = await api.get('/books', { params: filters });
+        const { data } = await api.get("/books", { params: filters });
         books.value = data.books;
         pagination.value = data.pagination;
     } catch (error) {
@@ -49,23 +51,23 @@ const handleFileChange = (event) => {
 };
 
 const resetUploader = () => {
-    newBook.title = '';
+    newBook.title = "";
     newBook.file = null;
     if (fileInput.value) {
-        fileInput.value.value = '';
+        fileInput.value.value = "";
     }
 };
 
 const uploadBook = async () => {
     if (!newBook.title || !newBook.file) return;
     const formData = new FormData();
-    formData.append('title', newBook.title);
-    formData.append('file', newBook.file);
+    formData.append("title", newBook.title);
+    formData.append("file", newBook.file);
     try {
         loading.value = true;
-        await api.post('/books', formData, {
+        await api.post("/books", formData, {
             headers: {
-                'Content-Type': 'multipart/form-data',
+                "Content-Type": "multipart/form-data",
             },
         });
         resetUploader();
@@ -100,11 +102,14 @@ onMounted(fetchBooks);
         <template #header>
             <div class="flex items-center justify-between">
                 <div>
-                    <h2 class="text-xl font-semibold leading-tight text-gray-800">
+                    <h2
+                        class="text-xl font-semibold leading-tight text-gray-800"
+                    >
                         Books
                     </h2>
                     <p class="text-sm text-gray-500">
-                        Manage lesson materials, download resources, and upload new content.
+                        Manage lesson materials, download resources, and upload
+                        new content.
                     </p>
                 </div>
             </div>
@@ -113,7 +118,9 @@ onMounted(fetchBooks);
         <div class="py-10">
             <div class="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
                 <div class="grid gap-6 lg:grid-cols-3">
-                    <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm lg:col-span-2">
+                    <div
+                        class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm lg:col-span-2"
+                    >
                         <div class="mb-4 flex items-center gap-3">
                             <input
                                 v-model="filters.search"
@@ -130,11 +137,17 @@ onMounted(fetchBooks);
                             </button>
                         </div>
 
-                        <div class="overflow-hidden rounded-lg border border-gray-200">
+                        <div
+                            class="overflow-hidden rounded-lg border border-gray-200"
+                        >
                             <div class="overflow-x-auto">
-                                <table class="min-w-full divide-y divide-gray-200">
+                                <table
+                                    class="min-w-full divide-y divide-gray-200"
+                                >
                                     <thead class="bg-gray-50">
-                                        <tr class="text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                        <tr
+                                            class="text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
+                                        >
                                             <th scope="col" class="px-6 py-3">
                                                 Title
                                             </th>
@@ -144,11 +157,20 @@ onMounted(fetchBooks);
                                             <th scope="col" class="px-6 py-3">
                                                 Uploaded
                                             </th>
-                                            <th scope="col" class="px-6 py-3"></th>
+                                            <th
+                                                scope="col"
+                                                class="px-6 py-3"
+                                            ></th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-gray-200 bg-white">
-                                        <tr v-if="!loading && books.length === 0">
+                                    <tbody
+                                        class="divide-y divide-gray-200 bg-white"
+                                    >
+                                        <tr
+                                            v-if="
+                                                !loading && books.length === 0
+                                            "
+                                        >
                                             <td
                                                 colspan="4"
                                                 class="px-6 py-4 text-center text-sm text-gray-500"
@@ -162,24 +184,40 @@ onMounted(fetchBooks);
                                             class="text-sm text-gray-700"
                                         >
                                             <td class="px-6 py-4">
-                                                <div class="font-medium text-gray-900">
+                                                <div
+                                                    class="font-medium text-gray-900"
+                                                >
                                                     {{ book.title }}
                                                 </div>
                                             </td>
                                             <td class="px-6 py-4">
-                                                {{ book.original_filename ?? book.filename }}
+                                                {{
+                                                    book.original_filename ??
+                                                    book.filename
+                                                }}
                                             </td>
                                             <td class="px-6 py-4">
                                                 {{
                                                     book.created_at
-                                                        ? new Date(book.created_at).toLocaleDateString()
-                                                        : '—'
+                                                        ? new Date(
+                                                              book.created_at
+                                                          ).toLocaleDateString()
+                                                        : "—"
                                                 }}
                                             </td>
                                             <td class="px-6 py-4 text-right">
-                                                <div class="flex items-center justify-end gap-2">
+                                                <div
+                                                    class="flex items-center justify-end gap-2"
+                                                >
                                                     <button
-                                                        @click="router.visit(route('books.show', book.id))"
+                                                        @click="
+                                                            router.visit(
+                                                                route(
+                                                                    'books.show',
+                                                                    book.id
+                                                                )
+                                                            )
+                                                        "
                                                         class="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
                                                     >
                                                         View
@@ -194,7 +232,10 @@ onMounted(fetchBooks);
                                                         Download
                                                     </a>
                                                     <button
-                                                        @click.stop="deleteBook(book)"
+                                                        v-if="isSuperAdmin"
+                                                        @click.stop="
+                                                            deleteBook(book)
+                                                        "
                                                         class="rounded-md border border-red-300 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
                                                         :disabled="loading"
                                                     >
@@ -219,14 +260,20 @@ onMounted(fetchBooks);
                                     <button
                                         @click="goToPage(pagination.page - 1)"
                                         class="rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-50"
-                                        :disabled="loading || pagination.page === 1"
+                                        :disabled="
+                                            loading || pagination.page === 1
+                                        "
                                     >
                                         Previous
                                     </button>
                                     <button
                                         @click="goToPage(pagination.page + 1)"
                                         class="rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-50"
-                                        :disabled="loading || pagination.page === pagination.totalPages"
+                                        :disabled="
+                                            loading ||
+                                            pagination.page ===
+                                                pagination.totalPages
+                                        "
                                     >
                                         Next
                                     </button>
@@ -235,16 +282,22 @@ onMounted(fetchBooks);
                         </div>
                     </div>
 
-                    <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+                    <div
+                        v-if="isSuperAdmin"
+                        class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm"
+                    >
                         <h3 class="text-lg font-semibold text-gray-900">
                             Upload New Book
                         </h3>
                         <p class="mt-1 text-sm text-gray-500">
-                            Share teaching materials and reference PDFs with staff.
+                            Share teaching materials and reference PDFs with
+                            staff.
                         </p>
                         <div class="mt-4 space-y-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">
+                                <label
+                                    class="block text-sm font-medium text-gray-700"
+                                >
                                     Title
                                 </label>
                                 <input
@@ -255,7 +308,9 @@ onMounted(fetchBooks);
                                 />
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">
+                                <label
+                                    class="block text-sm font-medium text-gray-700"
+                                >
                                     PDF File
                                 </label>
                                 <input
@@ -266,14 +321,17 @@ onMounted(fetchBooks);
                                     class="mt-1 block w-full text-sm text-gray-700"
                                 />
                                 <p class="mt-1 text-xs text-gray-500">
-                                    Maximum size 10MB. Supported formats: PDF, DOC(X), PPT(X).
+                                    Maximum size 10MB. Supported formats: PDF,
+                                    DOC(X), PPT(X).
                                 </p>
                             </div>
                             <button
                                 type="button"
                                 @click="uploadBook"
                                 class="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                                :disabled="loading || !newBook.title || !newBook.file"
+                                :disabled="
+                                    loading || !newBook.title || !newBook.file
+                                "
                             >
                                 Upload
                             </button>
@@ -284,4 +342,3 @@ onMounted(fetchBooks);
         </div>
     </AuthenticatedLayout>
 </template>
-
