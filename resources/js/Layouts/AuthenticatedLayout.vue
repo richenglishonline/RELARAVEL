@@ -18,6 +18,7 @@ import {
     Cog6ToothIcon,
     UsersIcon,
     ClipboardDocumentCheckIcon,
+    PhotoIcon,
 } from "@heroicons/vue/24/outline";
 
 const page = usePage();
@@ -43,7 +44,7 @@ const getNavigation = (role) => {
                 items: [
                     {
                         name: "Dashboard",
-                        href: route("dashboard"),
+                        href: route("teacher.dashboard"),
                         icon: HomeIcon,
                     },
                 ],
@@ -53,17 +54,17 @@ const getNavigation = (role) => {
                 items: [
                     {
                         name: "My Schedule",
-                        href: route("schedule.index"),
+                        href: route("teacher.schedule.index"),
                         icon: CalendarIcon,
                     },
                     {
                         name: "Classes",
-                        href: route("classes.index"),
+                        href: route("teacher.classes.index"),
                         icon: CalendarIcon,
                     },
                     {
                         name: "Makeup Classes",
-                        href: route("makeup-classes.index"),
+                        href: route("teacher.makeup-classes.index"),
                         icon: ClockIcon,
                     },
                 ],
@@ -73,12 +74,12 @@ const getNavigation = (role) => {
                 items: [
                     {
                         name: "My Students",
-                        href: route("students.index"),
+                        href: route("teacher.students.index"),
                         icon: UserGroupIcon,
                     },
                     {
                         name: "Attendance",
-                        href: route("attendance.index"),
+                        href: route("teacher.attendance.index"),
                         icon: ClipboardDocumentListIcon,
                     },
                 ],
@@ -88,18 +89,28 @@ const getNavigation = (role) => {
                 items: [
                     {
                         name: "Books",
-                        href: route("books.index"),
+                        href: route("teacher.books.index"),
                         icon: BookOpenIcon,
                     },
                     {
                         name: "Recordings",
-                        href: route("recordings.index"),
+                        href: route("teacher.recordings.index"),
                         icon: VideoCameraIcon,
                     },
                     {
-                        name: "Reports",
-                        href: route("reports.index"),
-                        icon: FolderOpenIcon,
+                        name: "Screenshots",
+                        href: route("teacher.screenshots.index"),
+                        icon: PhotoIcon,
+                    },
+                ],
+            },
+            {
+                group: "Financial",
+                items: [
+                    {
+                        name: "Salary",
+                        href: route("teacher.salary.index"),
+                        icon: BanknotesIcon,
                     },
                 ],
             },
@@ -113,7 +124,7 @@ const getNavigation = (role) => {
                 items: [
                     {
                         name: "Dashboard",
-                        href: route("dashboard"),
+                        href: route("admin.dashboard"),
                         icon: HomeIcon,
                     },
                 ],
@@ -123,12 +134,12 @@ const getNavigation = (role) => {
                 items: [
                     {
                         name: "Teachers",
-                        href: route("teachers.index"),
+                        href: route("admin.teachers.index"),
                         icon: UsersIcon,
                     },
                     {
                         name: "Students",
-                        href: route("students.index"),
+                        href: route("admin.students.index"),
                         icon: UserGroupIcon,
                     },
                 ],
@@ -137,14 +148,34 @@ const getNavigation = (role) => {
                 group: "Classes & Attendance",
                 items: [
                     {
-                        name: "Schedules",
-                        href: route("classes.index"),
+                        name: "Classes",
+                        href: route("admin.classes.index"),
                         icon: CalendarIcon,
                     },
                     {
+                        name: "Makeup Classes",
+                        href: route("admin.makeup-classes.index"),
+                        icon: ClockIcon,
+                    },
+                    {
                         name: "Attendance",
-                        href: route("attendance.index"),
+                        href: route("admin.attendance.index"),
                         icon: ClipboardDocumentListIcon,
+                    },
+                ],
+            },
+            {
+                group: "Content",
+                items: [
+                    {
+                        name: "Books",
+                        href: route("admin.books.index"),
+                        icon: BookOpenIcon,
+                    },
+                    {
+                        name: "Assignments",
+                        href: route("admin.assignments.index"),
+                        icon: ClipboardDocumentCheckIcon,
                     },
                 ],
             },
@@ -153,38 +184,28 @@ const getNavigation = (role) => {
                 items: [
                     {
                         name: "Reports",
-                        href: route("reports.index"),
+                        href: route("admin.reports.index"),
                         icon: FolderOpenIcon,
                     },
                     {
-                        name: "Screenshots",
-                        href: route("screenshots.index"),
-                        icon: VideoCameraIcon,
-                    },
-                    {
                         name: "Recordings",
-                        href: route("recordings.index"),
+                        href: route("admin.recordings.index"),
                         icon: VideoCameraIcon,
                     },
-                ],
-            },
-            {
-                group: "Resources",
-                items: [
                     {
-                        name: "Books Archive",
-                        href: route("books.index"),
-                        icon: BookOpenIcon,
+                        name: "Screenshots",
+                        href: route("admin.screenshots.index"),
+                        icon: PhotoIcon,
                     },
                 ],
             },
             {
-                group: "Tools",
+                group: "Financial",
                 items: [
                     {
-                        name: "Search",
-                        href: route("search.index"),
-                        icon: MagnifyingGlassIcon,
+                        name: "Payouts",
+                        href: route("admin.payouts.index"),
+                        icon: BanknotesIcon,
                     },
                 ],
             },
@@ -198,7 +219,7 @@ const getNavigation = (role) => {
                 items: [
                     {
                         name: "Dashboard",
-                        href: route("dashboard"),
+                        href: route("super-admin.dashboard"),
                         icon: HomeIcon,
                     },
                 ],
@@ -207,23 +228,23 @@ const getNavigation = (role) => {
                 group: "User Management",
                 items: [
                     {
+                        name: "Admins",
+                        href: route("super-admin.admins.index"),
+                        icon: UsersIcon,
+                    },
+                    {
                         name: "Teachers",
-                        href: route("teachers.index"),
+                        href: route("super-admin.teachers.index"),
                         icon: UsersIcon,
                     },
                     {
                         name: "Teacher Applications",
-                        href: route("teacher-applications.index"),
+                        href: route("super-admin.teacher-applications.index"),
                         icon: ClipboardDocumentCheckIcon,
                     },
                     {
-                        name: "Admins",
-                        href: route("admins.index"),
-                        icon: UsersIcon,
-                    },
-                    {
                         name: "Students",
-                        href: route("students.index"),
+                        href: route("super-admin.students.index"),
                         icon: UserGroupIcon,
                     },
                 ],
@@ -232,13 +253,18 @@ const getNavigation = (role) => {
                 group: "Classes & Attendance",
                 items: [
                     {
-                        name: "Schedules",
-                        href: route("classes.index"),
+                        name: "Classes",
+                        href: route("super-admin.classes.index"),
                         icon: CalendarIcon,
                     },
                     {
+                        name: "Makeup Classes",
+                        href: route("super-admin.makeup-classes.index"),
+                        icon: ClockIcon,
+                    },
+                    {
                         name: "Attendance",
-                        href: route("attendance.index"),
+                        href: route("super-admin.attendance.index"),
                         icon: ClipboardDocumentListIcon,
                     },
                 ],
@@ -247,18 +273,18 @@ const getNavigation = (role) => {
                 group: "Content Management",
                 items: [
                     {
-                        name: "Books Management",
-                        href: route("books.index"),
+                        name: "Books",
+                        href: route("super-admin.books.index"),
                         icon: BookOpenIcon,
                     },
                     {
-                        name: "Assign Books",
-                        href: route("assignments.index"),
-                        icon: BookOpenIcon,
+                        name: "Assignments",
+                        href: route("super-admin.assignments.index"),
+                        icon: ClipboardDocumentCheckIcon,
                     },
                     {
-                        name: "Curriculum Access",
-                        href: route("curriculum.index"),
+                        name: "Curriculum",
+                        href: route("super-admin.curriculum.index"),
                         icon: FolderOpenIcon,
                     },
                 ],
@@ -268,18 +294,18 @@ const getNavigation = (role) => {
                 items: [
                     {
                         name: "Reports",
-                        href: route("reports.index"),
+                        href: route("super-admin.reports.index"),
                         icon: FolderOpenIcon,
                     },
                     {
-                        name: "Screenshots",
-                        href: route("screenshots.index"),
+                        name: "Recordings",
+                        href: route("super-admin.recordings.index"),
                         icon: VideoCameraIcon,
                     },
                     {
-                        name: "Recordings",
-                        href: route("recordings.index"),
-                        icon: VideoCameraIcon,
+                        name: "Screenshots",
+                        href: route("super-admin.screenshots.index"),
+                        icon: PhotoIcon,
                     },
                 ],
             },
@@ -287,28 +313,28 @@ const getNavigation = (role) => {
                 group: "Financial",
                 items: [
                     {
-                        name: "Salary Management",
-                        href: route("salary.index"),
+                        name: "Salary",
+                        href: route("super-admin.salary.index"),
                         icon: BanknotesIcon,
                     },
                     {
-                        name: "Payout Overview",
-                        href: route("payouts.index"),
+                        name: "Payouts",
+                        href: route("super-admin.payouts.index"),
                         icon: BanknotesIcon,
                     },
                 ],
             },
             {
-                group: "Tools",
+                group: "System",
                 items: [
                     {
                         name: "Search",
-                        href: route("search.index"),
+                        href: route("super-admin.search.index"),
                         icon: MagnifyingGlassIcon,
                     },
                     {
                         name: "Settings",
-                        href: route("settings.index"),
+                        href: route("super-admin.settings.index"),
                         icon: Cog6ToothIcon,
                     },
                 ],
@@ -332,6 +358,7 @@ const isCurrentPath = (href) => {
 
 <template>
     <div class="h-screen flex overflow-hidden bg-gray-100">
+        <!-- Mobile sidebar -->
         <div
             :class="{
                 'fixed inset-0 flex justify-end z-40 md:hidden': true,
@@ -462,6 +489,7 @@ const isCurrentPath = (href) => {
             </div>
         </div>
 
+        <!-- Desktop sidebar -->
         <div class="hidden md:flex md:flex-shrink-0">
             <div class="flex flex-col w-64">
                 <div class="flex flex-col h-0 flex-1">
@@ -565,6 +593,7 @@ const isCurrentPath = (href) => {
             </div>
         </div>
 
+        <!-- Main content -->
         <div class="flex flex-col w-0 flex-1 overflow-hidden">
             <div
                 class="md:hidden flex items-center justify-between px-4 py-3 bg-white shadow"
