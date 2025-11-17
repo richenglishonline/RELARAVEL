@@ -8,8 +8,9 @@ import { createApp, h } from "vue";
 import { Ziggy } from "./ziggy";
 import { route } from "ziggy-js";
 import AOS from "aos";
-import "aos/dist/aos.css"; // Import AOS styles
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import "aos/dist/aos.css";
+import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
+
 import Swal from "sweetalert2";
 
 const appName = import.meta.env.VITE_APP_NAME || "Rich English Online";
@@ -62,10 +63,15 @@ createInertiaApp({
             delay: 0,
         });
 
-        app.provide("queryClient", queryClient);
+        // Apply Inertia plugin first
+        app.use(plugin);
 
-        return app.use(plugin).mount(el);
+        // Then Vue Query plugin
+        app.use(VueQueryPlugin, { queryClient });
+
+        return app.mount(el);
     },
+
     progress: {
         color: "#4B5563",
         showSpinner: true,

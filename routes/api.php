@@ -96,7 +96,7 @@ Route::prefix('v1')->group(function () {
         Route::post('message', [MessageController::class, 'store']);
 
         // Payouts - Legacy: GET/POST/PATCH require super-admin only; DELETE requires super-admin only
-        Route::get('payout', [PayoutController::class, 'index'])->middleware('role:super-admin');
+        Route::get('payout', [PayoutController::class, 'index'])->middleware('role:super-admin,teacher');
         Route::post('payout', [PayoutController::class, 'store'])->middleware('role:super-admin');
         Route::get('payout/{payout}', [PayoutController::class, 'show']);
         Route::patch('payout/{payout}', [PayoutController::class, 'update'])->middleware('role:super-admin');

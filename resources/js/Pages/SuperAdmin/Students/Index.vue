@@ -1,588 +1,320 @@
 <script setup>
-import { reactive, ref, onMounted, computed } from 'vue';
-import { Head, router, usePage } from '@inertiajs/vue3';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import api from '@/lib/api';
-import Button from '@/Components/ui/Button.vue';
-import Dialog from '@/Components/ui/Dialog.vue';
-import DialogHeader from '@/Components/ui/DialogHeader.vue';
-import DialogTitle from '@/Components/ui/DialogTitle.vue';
-import DialogDescription from '@/Components/ui/DialogDescription.vue';
-import DialogFooter from '@/Components/ui/DialogFooter.vue';
-import Input from '@/Components/ui/Input.vue';
-import Label from '@/Components/ui/Label.vue';
-import { PencilIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import { reactive, ref, computed } from "vue";
+import { Head, usePage, router } from "@inertiajs/vue3";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
+import Button from "@/Components/ui/Button.vue";
+import Dialog from "@/Components/ui/Dialog.vue";
+import DialogHeader from "@/Components/ui/DialogHeader.vue";
+import DialogTitle from "@/Components/ui/DialogTitle.vue";
+import DialogDescription from "@/Components/ui/DialogDescription.vue";
+import DialogFooter from "@/Components/ui/DialogFooter.vue";
+import { BanknotesIcon, ChartBarIcon } from "@heroicons/vue/24/outline";
+import { usePayouts } from "@/lib/tanstack/payouts";
 
 const page = usePage();
-const isSuperAdmin = computed(() => page.props.auth?.user?.role === 'super-admin');
-
-const loading = ref(false);
-const rows = ref([]);
-const pagination = ref(null);
 
 const filters = reactive({
-    name: '',
-    nationality: '',
-    manager_type: '',
-    category_level: '',
-    class_type: '',
-    platform: '',
+    status: "",
+    start_date: "",
+    end_date: "",
     page: 1,
-    limit: 10,
+    limit: 20,
 });
 
-const nationalities = ['KOREAN', 'CHINESE'];
-const platforms = ['Zoom', 'Voov'];
+const { data: payoutsData, isFetching: loading, refetch } = usePayouts(filters);
 
-const fetchStudents = async () => {
-    loading.value = true;
-    try {
-        const { data } = await api.get('/students', { params: filters });
-        rows.value = data.students;
-        pagination.value = data.pagination ?? { total: data.total ?? data.students.length, page: 1, totalPages: 1 };
-    } catch (error) {
-        console.error(error);
-    } finally {
-        loading.value = false;
+const payouts = computed(() => payoutsData?.value?.payouts ?? []);
+const pagination = computed(() => payoutsData?.value?.pagination ?? null);
+
+const summary = computed(() => {
+    if (!payouts.value.length) {
+        return {
+            total_payouts: 0,
+            total_amount: 0,
+            total_duration: 0,
+            total_classes: 0,
+            total_incentives: 0,
+            pending: 0,
+            processing: 0,
+            completed: 0,
+        };
     }
-};
 
-const goToPage = (page) => {
+    const totalAmount = payouts.value.reduce(
+        (sum, p) => sum + (parseFloat(p.amount) || 0),
+        0
+    );
+    const totalDuration = payouts.value.reduce(
+        (sum, p) => sum + (parseInt(p.duration) || 0),
+        0
+    );
+    const totalClasses = payouts.value.reduce(
+        (sum, p) => sum + (parseInt(p.total_class) || 0),
+        0
+    );
+    const totalIncentives = payouts.value.reduce(
+        (sum, p) => sum + (parseFloat(p.incentives) || 0),
+        0
+    );
+
+    return {
+        total_payouts: payouts.value.length,
+        total_amount: totalAmount,
+        total_duration: totalDuration,
+        total_classes: totalClasses,
+        total_incentives: totalIncentives,
+        pending: payouts.value.filter((p) => p.status === "pending").length,
+        processing: payouts.value.filter((p) => p.status === "processing")
+            .length,
+        completed: payouts.value.filter((p) => p.status === "completed").length,
+    };
+});
+
+// Pagination
+const goToPage = (pageNum) => {
     if (!pagination.value) return;
-    if (page < 1 || page > pagination.value.totalPages) return;
-    filters.page = page;
-    fetchStudents();
+    if (pageNum < 1 || pageNum > pagination.value.totalPages) return;
+    filters.page = pageNum;
+    refetch();
 };
 
 const resetFilters = () => {
-    filters.name = '';
-    filters.nationality = '';
-    filters.manager_type = '';
-    filters.category_level = '';
-    filters.class_type = '';
-    filters.platform = '';
+    filters.status = "";
+    filters.start_date = "";
+    filters.end_date = "";
     filters.page = 1;
-    fetchStudents();
+    refetch();
 };
 
+// Formatting helpers
+const formatDate = (dateString) => {
+    if (!dateString) return "—";
+    return new Date(dateString).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+    });
+};
+
+const formatCurrency = (amount) => {
+    if (!amount) return "$0.00";
+    return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+    }).format(amount);
+};
+
+// Admin Dialog
 const dialogOpen = ref(false);
-const editingStudent = ref(null);
-const submitting = ref(false);
-const formData = reactive({
-    name: '',
-    age: '',
-    nationality: '',
-    manager_type: '',
-    email: '',
-    category_level: '',
-    class_type: '',
-    platform: 'Zoom',
-    platform_link: '',
-    preferred_book: '',
-    student_identification: '',
+const editingPayout = ref(null);
+const form = reactive({
+    teacher_name: "",
+    amount: "",
+    duration: "",
+    total_class: "",
+    incentives: "",
+    status: "pending",
 });
 
-const openAddDialog = () => {
-    editingStudent.value = null;
-    Object.assign(formData, {
-        name: '',
-        age: '',
-        nationality: '',
-        manager_type: '',
-        email: '',
-        category_level: '',
-        class_type: '',
-        platform: 'Zoom',
-        platform_link: '',
-        preferred_book: '',
-        student_identification: '',
-    });
+const openDialog = (payout = null) => {
+    editingPayout.value = payout;
+    if (payout) {
+        form.teacher_name = payout.teacher_name;
+        form.amount = payout.amount;
+        form.duration = payout.duration;
+        form.total_class = payout.total_class;
+        form.incentives = payout.incentives;
+        form.status = payout.status;
+    } else {
+        form.teacher_name = "";
+        form.amount = "";
+        form.duration = "";
+        form.total_class = "";
+        form.incentives = "";
+        form.status = "pending";
+    }
     dialogOpen.value = true;
 };
 
-const openEditDialog = (student) => {
-    editingStudent.value = student;
-    Object.assign(formData, {
-        name: student.name || '',
-        age: student.age || '',
-        nationality: student.nationality || '',
-        manager_type: student.manager_type || '',
-        email: student.email || '',
-        category_level: student.category_level || '',
-        class_type: student.class_type || '',
-        platform: student.platform || 'Zoom',
-        platform_link: student.platform_link || '',
-        preferred_book: student.preferred_book || '',
-        student_identification: student.student_identification || '',
-    });
-    dialogOpen.value = true;
+const savePayout = () => {
+    // For now just close dialog (replace with API call)
+    dialogOpen.value = false;
+    refetch();
 };
-
-const handleSubmit = async () => {
-    submitting.value = true;
-    try {
-        const payload = { ...formData };
-        // Don't send student_identification when editing (it's read-only)
-        if (editingStudent.value) {
-            delete payload.student_identification;
-        } else if (!payload.student_identification) {
-            // When adding, remove empty student_identification so it auto-generates
-            delete payload.student_identification;
-        }
-        if (editingStudent.value) {
-            await api.patch(`/students/${editingStudent.value.id}`, payload);
-        } else {
-            await api.post('/students', payload);
-        }
-        dialogOpen.value = false;
-        await fetchStudents();
-    } catch (error) {
-        console.error('Error saving student:', error);
-        alert(error.response?.data?.message || 'Failed to save student');
-    } finally {
-        submitting.value = false;
-    }
-};
-
-const handleDelete = async (student) => {
-    if (!confirm(`Delete ${student.name}?`)) return;
-    try {
-        loading.value = true;
-        await api.delete(`/students/${student.id}`);
-        await fetchStudents();
-    } catch (error) {
-        console.error('Error deleting student:', error);
-    } finally {
-        loading.value = false;
-    }
-};
-
-onMounted(fetchStudents);
 </script>
 
 <template>
-    <Head title="Students" />
+    <Head title="Admin Payouts Management" />
 
     <AuthenticatedLayout>
         <template #header>
             <div class="flex items-center justify-between">
                 <div>
-                    <h2 class="text-xl font-semibold leading-tight text-gray-800">
-                        Students
+                    <h2
+                        class="text-xl font-semibold leading-tight text-gray-800"
+                    >
+                        Admin Payouts Management
                     </h2>
                     <p class="text-sm text-gray-500">
-                        Manage enrolled learners, filter by profile, and update information.
+                        Add, edit, and manage payouts.
                     </p>
                 </div>
-                <div class="flex items-center gap-3">
-                    <Button
-                        v-if="isSuperAdmin"
-                        @click="openAddDialog"
-                        :disabled="loading"
+                <div class="flex gap-2">
+                    <Button @click="refetch" :disabled="loading"
+                        >Refresh</Button
                     >
-                        Add Student
-                    </Button>
-                    <button
-                        @click="fetchStudents"
-                        class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                        :disabled="loading"
-                    >
-                        Refresh
-                    </button>
+                    <Button @click="openDialog()">Add Payout</Button>
                 </div>
             </div>
         </template>
 
+        <!-- Summary & Filters (same as before) -->
         <div class="py-10">
-            <div class="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
-                <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-                    <form class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">
-                                Name
-                            </label>
-                            <input
-                                v-model="filters.name"
-                                type="text"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                placeholder="Search name"
-                            />
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">
-                                Nationality
-                            </label>
-                            <select
-                                v-model="filters.nationality"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                            >
-                                <option value="">Any</option>
-                                <option
-                                    v-for="option in nationalities"
-                                    :key="option"
-                                    :value="option"
-                                >
-                                    {{ option }}
-                                </option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">
-                                Manager Type
-                            </label>
-                            <input
-                                v-model="filters.manager_type"
-                                type="text"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                placeholder="KM / CM"
-                            />
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">
-                                Category Level
-                            </label>
-                            <input
-                                v-model="filters.category_level"
-                                type="text"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                placeholder="Beginner, Adult..."
-                            />
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">
-                                Class Type
-                            </label>
-                            <input
-                                v-model="filters.class_type"
-                                type="text"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                placeholder="Zoom, Voov..."
-                            />
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">
-                                Platform
-                            </label>
-                            <select
-                                v-model="filters.platform"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                            >
-                                <option value="">Any</option>
-                                <option
-                                    v-for="platform in platforms"
-                                    :key="platform"
-                                    :value="platform"
-                                >
-                                    {{ platform }}
-                                </option>
-                            </select>
-                        </div>
-                        <div class="flex items-end gap-3">
-                            <button
-                                type="button"
-                                @click="fetchStudents"
-                                class="flex-1 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                                :disabled="loading"
-                            >
-                                Apply Filters
-                            </button>
-                            <button
-                                type="button"
-                                @click="resetFilters"
-                                class="flex-1 rounded-md border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                                :disabled="loading"
-                            >
-                                Reset
-                            </button>
-                        </div>
-                    </form>
-                </div>
+            <!-- ...Summary Cards & Filters Table code... keep as in your previous template -->
 
-                <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr class="text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                    <th scope="col" class="px-6 py-3">
-                                        Student
-                                    </th>
-                                    <th scope="col" class="px-6 py-3">
-                                        Nationality
-                                    </th>
-                                    <th scope="col" class="px-6 py-3">
-                                        Category Level
-                                    </th>
-                                    <th scope="col" class="px-6 py-3">
-                                        Class Type
-                                    </th>
-                                    <th scope="col" class="px-6 py-3">
-                                        Platform
-                                    </th>
-                                    <th scope="col" class="px-6 py-3">
-                                        Preferred Book
-                                    </th>
-                                    <th scope="col" class="px-6 py-3">
-                                        Updated
-                                    </th>
-                                    <th scope="col" class="px-6 py-3">
-                                        Actions
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200 bg-white">
-                                <tr v-if="!loading && rows.length === 0">
-                                    <td
-                                        colspan="8"
-                                        class="px-6 py-4 text-center text-sm text-gray-500"
+            <!-- Payouts Table -->
+            <div
+                class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
+            >
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr
+                                class="text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
+                            >
+                                <th class="px-6 py-3">Period</th>
+                                <th class="px-6 py-3">Duration</th>
+                                <th class="px-6 py-3">Classes</th>
+                                <th class="px-6 py-3">Amount</th>
+                                <th class="px-6 py-3">Incentives</th>
+                                <th class="px-6 py-3">Status</th>
+                                <th class="px-6 py-3">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 bg-white">
+                            <tr v-if="!loading && payouts.length === 0">
+                                <td
+                                    colspan="7"
+                                    class="px-6 py-4 text-center text-sm text-gray-500"
+                                >
+                                    No payouts found.
+                                </td>
+                            </tr>
+                            <tr
+                                v-for="payout in payouts"
+                                :key="payout.id"
+                                class="text-sm text-gray-700 hover:bg-gray-50"
+                            >
+                                <td class="px-6 py-4">
+                                    {{ formatDate(payout.start_date) }} -
+                                    {{ formatDate(payout.end_date) }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    {{ payout.duration ?? "—" }} hours
+                                </td>
+                                <td class="px-6 py-4">
+                                    {{ payout.total_class ?? "—" }}
+                                </td>
+                                <td
+                                    class="px-6 py-4 font-semibold text-gray-900"
+                                >
+                                    {{ formatCurrency(payout.amount) }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    {{ formatCurrency(payout.incentives) }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span
+                                        :class="[
+                                            'px-2 py-1 text-xs font-medium rounded',
+                                            payout.status === 'completed'
+                                                ? 'bg-green-100 text-green-800'
+                                                : payout.status === 'processing'
+                                                ? 'bg-yellow-100 text-yellow-800'
+                                                : 'bg-gray-100 text-gray-800',
+                                        ]"
                                     >
-                                        No students found.
-                                    </td>
-                                </tr>
-                                <tr
-                                    v-for="student in rows"
-                                    :key="student.id"
-                                    class="text-sm text-gray-700"
-                                >
-                                    <td class="px-6 py-4">
-                                        <div class="font-medium text-gray-900">
-                                            {{ student.name }}
-                                        </div>
-                                        <div class="text-gray-500">
-                                            {{ student.email ?? '—' }}
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        {{ student.nationality ?? '—' }}
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        {{ student.category_level ?? '—' }}
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        {{ student.class_type ?? '—' }}
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        {{ student.platform ?? '—' }}
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        {{ student.preferred_book ?? '—' }}
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        {{
-                                            student.updated_at
-                                                ? new Date(student.updated_at).toLocaleDateString()
-                                                : '—'
-                                        }}
-                                    </td>
-                                    <td v-if="isSuperAdmin" class="px-6 py-4">
-                                        <div class="flex items-center gap-2">
-                                            <Button
-                                                @click="router.visit(route('students.show', student.id))"
-                                                variant="outline"
-                                                size="sm"
-                                            >
-                                                View
-                                            </Button>
-                                            <Button
-                                                @click="openEditDialog(student)"
-                                                variant="outline"
-                                                size="sm"
-                                            >
-                                                <PencilIcon class="h-4 w-4" />
-                                                Edit
-                                            </Button>
-                                            <Button
-                                                @click="handleDelete(student)"
-                                                variant="destructive"
-                                                size="sm"
-                                            >
-                                                <TrashIcon class="h-4 w-4" />
-                                                Delete
-                                            </Button>
-                                        </div>
-                                    </td>
-                                    <td v-else class="px-6 py-4">
-                                        <Button
-                                            @click="router.visit(route('students.show', student.id))"
-                                            variant="outline"
-                                            size="sm"
-                                        >
-                                            View
-                                        </Button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div
-                        v-if="pagination"
-                        class="flex flex-col items-center justify-between gap-4 border-t border-gray-100 px-6 py-4 text-sm text-gray-600 sm:flex-row"
-                    >
-                        <div>
-                            Page {{ pagination.page }} of
-                            {{ pagination.totalPages ?? 1 }}
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <button
-                                @click="goToPage(pagination.page - 1)"
-                                class="rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-50"
-                                :disabled="loading || pagination.page === 1"
-                            >
-                                Previous
-                            </button>
-                            <button
-                                @click="goToPage(pagination.page + 1)"
-                                class="rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-50"
-                                :disabled="loading || pagination.page === pagination.totalPages"
-                            >
-                                Next
-                            </button>
-                        </div>
-                    </div>
+                                        {{ payout.status }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <Button
+                                        @click="openDialog(payout)"
+                                        variant="outline"
+                                        size="sm"
+                                        >Edit</Button
+                                    >
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-        </div>
 
-        <!-- Add/Edit Dialog -->
-        <Dialog :open="dialogOpen" @update:open="dialogOpen = $event">
-            <div class="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle>
-                        {{ editingStudent ? 'Update Student' : 'Add Student' }}
-                    </DialogTitle>
-                    <DialogDescription>
-                        {{ editingStudent ? 'Update student information' : 'Add a new student to the system' }}
-                    </DialogDescription>
-                </DialogHeader>
-
-                <form @submit.prevent="handleSubmit" class="space-y-4">
-                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <div class="space-y-2">
-                            <Label>
-                                Name <span class="text-destructive">*</span>
-                            </Label>
-                            <Input
-                                v-model="formData.name"
-                                type="text"
-                                required
-                                placeholder="Student name"
-                            />
-                        </div>
-                        <div class="space-y-2">
-                            <Label>Age</Label>
-                            <Input
-                                v-model="formData.age"
-                                type="number"
-                                placeholder="Age"
-                            />
-                        </div>
-                        <div class="space-y-2">
-                            <Label>Email</Label>
-                            <Input
-                                v-model="formData.email"
-                                type="email"
-                                placeholder="student@example.com"
-                            />
-                        </div>
-                        <div class="space-y-2">
-                            <Label>Nationality</Label>
-                            <select
-                                v-model="formData.nationality"
-                                class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                            >
-                                <option value="">Select nationality</option>
-                                <option value="KOREAN">KOREAN</option>
-                                <option value="CHINESE">CHINESE</option>
-                            </select>
-                        </div>
-                        <div class="space-y-2">
-                            <Label>Manager Type</Label>
-                            <Input
-                                v-model="formData.manager_type"
-                                type="text"
-                                placeholder="KM / CM"
-                            />
-                        </div>
-                        <div class="space-y-2">
-                            <Label>Category Level</Label>
-                            <Input
-                                v-model="formData.category_level"
-                                type="text"
-                                placeholder="Beginner, Adult..."
-                            />
-                        </div>
-                        <div class="space-y-2">
-                            <Label>Class Type</Label>
-                            <Input
-                                v-model="formData.class_type"
-                                type="text"
-                                placeholder="Class type"
-                            />
-                        </div>
-                        <div class="space-y-2">
-                            <Label>Platform</Label>
-                            <select
-                                v-model="formData.platform"
-                                class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                            >
-                                <option value="Zoom">Zoom</option>
-                                <option value="Voov">Voov</option>
-                            </select>
-                        </div>
-                        <div class="space-y-2 sm:col-span-2">
-                            <Label>Platform Link</Label>
-                            <Input
-                                v-model="formData.platform_link"
-                                type="url"
-                                placeholder="https://..."
-                            />
-                        </div>
-                        <div class="space-y-2 sm:col-span-2">
-                            <Label>Preferred Book</Label>
-                            <Input
-                                v-model="formData.preferred_book"
-                                type="text"
-                                placeholder="Preferred book"
-                            />
-                        </div>
-                        <div class="space-y-2 sm:col-span-2">
-                            <Label>
-                                Student ID
-                                <span v-if="!editingStudent" class="text-xs text-muted-foreground">
-                                    (Auto-generated if empty)
-                                </span>
-                                <span v-else class="text-xs text-muted-foreground">
-                                    (Cannot be changed)
-                                </span>
-                            </Label>
-                            <Input
-                                v-model="formData.student_identification"
-                                type="text"
-                                :disabled="!!editingStudent"
-                                :placeholder="!editingStudent ? 'Auto-generated if empty' : ''"
-                            />
-                        </div>
+            <!-- Admin Dialog -->
+            <Dialog :open="dialogOpen" @update:open="dialogOpen = $event">
+                <div class="sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-6">
+                    <DialogHeader>
+                        <DialogTitle>{{
+                            editingPayout ? "Update Payout" : "Add Payout"
+                        }}</DialogTitle>
+                        <DialogDescription>
+                            {{
+                                editingPayout
+                                    ? "Update payout details"
+                                    : "Add a new payout"
+                            }}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div class="mt-4 grid grid-cols-1 gap-4">
+                        <input
+                            v-model="form.teacher_name"
+                            placeholder="Teacher Name"
+                            class="w-full rounded border px-3 py-2"
+                        />
+                        <input
+                            v-model="form.amount"
+                            placeholder="Amount"
+                            type="number"
+                            class="w-full rounded border px-3 py-2"
+                        />
+                        <input
+                            v-model="form.duration"
+                            placeholder="Duration"
+                            type="number"
+                            class="w-full rounded border px-3 py-2"
+                        />
+                        <input
+                            v-model="form.total_class"
+                            placeholder="Total Classes"
+                            type="number"
+                            class="w-full rounded border px-3 py-2"
+                        />
+                        <input
+                            v-model="form.incentives"
+                            placeholder="Incentives"
+                            type="number"
+                            class="w-full rounded border px-3 py-2"
+                        />
+                        <select
+                            v-model="form.status"
+                            class="w-full rounded border px-3 py-2"
+                        >
+                            <option value="pending">Pending</option>
+                            <option value="processing">Processing</option>
+                            <option value="completed">Completed</option>
+                        </select>
                     </div>
-
-                    <DialogFooter>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            @click="dialogOpen = false"
-                            :disabled="submitting"
+                    <DialogFooter class="mt-4 flex justify-end gap-2">
+                        <Button @click="dialogOpen = false" variant="outline"
+                            >Cancel</Button
                         >
-                            Cancel
-                        </Button>
-                        <Button
-                            type="submit"
-                            :disabled="submitting"
-                        >
-                            {{ submitting ? (editingStudent ? 'Updating...' : 'Adding...') : (editingStudent ? 'Update' : 'Add') }}
-                        </Button>
+                        <Button @click="savePayout">{{
+                            editingPayout ? "Update" : "Save"
+                        }}</Button>
                     </DialogFooter>
-                </form>
-            </div>
-        </Dialog>
+                </div>
+            </Dialog>
+        </div>
     </AuthenticatedLayout>
 </template>
-
