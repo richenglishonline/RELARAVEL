@@ -280,61 +280,6 @@ onMounted(fetchBooks);
                             </div>
                         </div>
                     </div>
-
-                    <div
-                        class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm"
-                    >
-                        <h3 class="text-lg font-semibold text-gray-900">
-                            Upload New Book
-                        </h3>
-                        <p class="mt-1 text-sm text-gray-500">
-                            Share teaching materials and reference PDFs with
-                            staff.
-                        </p>
-                        <div class="mt-4 space-y-4">
-                            <div>
-                                <label
-                                    class="block text-sm font-medium text-gray-700"
-                                >
-                                    Title
-                                </label>
-                                <input
-                                    v-model="newBook.title"
-                                    type="text"
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                    placeholder="Enter book title"
-                                />
-                            </div>
-                            <div>
-                                <label
-                                    class="block text-sm font-medium text-gray-700"
-                                >
-                                    PDF File
-                                </label>
-                                <input
-                                    ref="fileInput"
-                                    type="file"
-                                    accept=".pdf,.doc,.docx,.ppt,.pptx"
-                                    @change="handleFileChange"
-                                    class="mt-1 block w-full text-sm text-gray-700"
-                                />
-                                <p class="mt-1 text-xs text-gray-500">
-                                    Maximum size 10MB. Supported formats: PDF,
-                                    DOC(X), PPT(X).
-                                </p>
-                            </div>
-                            <button
-                                type="button"
-                                @click="uploadBook"
-                                class="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                                :disabled="
-                                    loading || !newBook.title || !newBook.file
-                                "
-                            >
-                                Upload
-                            </button>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

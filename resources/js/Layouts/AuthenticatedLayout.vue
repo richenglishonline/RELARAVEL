@@ -199,16 +199,6 @@ const getNavigation = (role) => {
                     },
                 ],
             },
-            {
-                group: "Financial",
-                items: [
-                    {
-                        name: "Payouts",
-                        href: route("admin.payouts.index"),
-                        icon: BanknotesIcon,
-                    },
-                ],
-            },
         ];
     }
 

@@ -280,7 +280,7 @@ Route::middleware(['auth', 'role:super-admin'])->prefix('super-admin')->name('su
     Route::get('/dashboard', fn () => Inertia::render('SuperAdmin/Dashboard'))->name('dashboard');
     
     // Admins Management
-    Route::get('/admins', fn () => Inertia::render('SuperAdmin/Admins/Index'))->name('admins.index');
+    Route::get('/admins', fn () => Inertia::render('SuperAdmin/Admins/Show'))->name('admins.index');
     Route::get('/admins/create', fn () => Inertia::render('SuperAdmin/Admins/Create'))->name('admins.create');
     Route::get('/admins/{user}', function ($user) {
         return Inertia::render('SuperAdmin/Admins/Show', ['userId' => $user]);
