@@ -11,19 +11,21 @@ const books = ref([]);
 const pagination = ref(null);
 
 const filters = reactive({
-    title: '',
+    search: '',
+    level: '',
+    is_active: '',
     page: 1,
     limit: 20,
 });
 
-const fetchBooks = async () => {
+const fetchCurricula = async () => {
     loading.value = true;
     try {
-        const { data } = await api.get('/books', { params: filters });
-        books.value = data.books;
+        const { data } = await api.get('/curriculum', { params: filters });
+        books.value = data.curricula;
         pagination.value = data.pagination;
     } catch (error) {
-        console.error('Error fetching books:', error);
+        console.error('Error fetching curricula:', error);
     } finally {
         loading.value = false;
     }
@@ -33,16 +35,18 @@ const goToPage = (pageNum) => {
     if (!pagination.value) return;
     if (pageNum < 1 || pageNum > pagination.value.totalPages) return;
     filters.page = pageNum;
-    fetchBooks();
+    fetchCurricula();
 };
 
 const resetFilters = () => {
-    filters.title = '';
+    filters.search = '';
+    filters.level = '';
+    filters.is_active = '';
     filters.page = 1;
-    fetchBooks();
+    fetchCurricula();
 };
 
-onMounted(fetchBooks);
+onMounted(fetchCurricula);
 </script>
 
 <template>
@@ -59,13 +63,12 @@ onMounted(fetchBooks);
                         Manage curriculum resources and access control.
                     </p>
                 </div>
-                <button
-                    @click="fetchBooks"
-                    class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                <Button
+                    @click="fetchCurricula"
                     :disabled="loading"
                 >
                     Refresh
-                </button>
+                </Button>
             </div>
         </template>
 
@@ -76,19 +79,46 @@ onMounted(fetchBooks);
                     <form class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">
-                                Book Title
+                                Search
                             </label>
                             <input
-                                v-model="filters.title"
+                                v-model="filters.search"
                                 type="text"
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                placeholder="Search by title"
+                                placeholder="Search by title or description"
                             />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">
+                                Level
+                            </label>
+                            <select
+                                v-model="filters.level"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            >
+                                <option value="">All Levels</option>
+                                <option value="Beginner">Beginner</option>
+                                <option value="Intermediate">Intermediate</option>
+                                <option value="Advanced">Advanced</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">
+                                Status
+                            </label>
+                            <select
+                                v-model="filters.is_active"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            >
+                                <option value="">All</option>
+                                <option value="true">Active</option>
+                                <option value="false">Inactive</option>
+                            </select>
                         </div>
                         <div class="flex items-end gap-3 sm:col-span-2 lg:col-span-3">
                             <button
                                 type="button"
-                                @click="fetchBooks"
+                                @click="fetchCurricula"
                                 class="flex-1 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                                 :disabled="loading"
                             >
@@ -106,28 +136,40 @@ onMounted(fetchBooks);
                     </form>
                 </div>
 
-                <!-- Books Grid -->
+                <!-- Curriculum Grid -->
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     <div
-                        v-for="book in books"
-                        :key="book.id"
+                        v-for="curriculum in books"
+                        :key="curriculum.id"
                         class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                        @click="router.visit(route('books.show', book.id))"
+                        @click="router.visit(route('curriculum.index'))"
                     >
                         <div class="flex items-start gap-4">
                             <div class="flex-shrink-0">
                                 <BookOpenIcon class="h-8 w-8 text-indigo-600" />
                             </div>
                             <div class="flex-1 min-w-0">
-                                <h3 class="text-lg font-semibold text-gray-900 mb-2">
-                                    {{ book.title }}
-                                </h3>
-                                <p v-if="book.filename" class="text-sm text-gray-500 truncate">
-                                    {{ book.filename }}
+                                <div class="flex items-center gap-2 mb-2">
+                                    <h3 class="text-lg font-semibold text-gray-900">
+                                        {{ curriculum.title }}
+                                    </h3>
+                                    <span
+                                        v-if="curriculum.is_active"
+                                        class="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800"
+                                    >
+                                        Active
+                                    </span>
+                                </div>
+                                <p v-if="curriculum.description" class="text-sm text-gray-500 line-clamp-2 mb-2">
+                                    {{ curriculum.description }}
                                 </p>
+                                <div class="flex items-center gap-4 text-xs text-gray-500">
+                                    <span v-if="curriculum.level">{{ curriculum.level }}</span>
+                                    <span v-if="curriculum.duration_minutes">{{ curriculum.duration_minutes }} min</span>
+                                </div>
                                 <div class="mt-4">
                                     <Button
-                                        @click.stop="router.visit(route('books.show', book.id))"
+                                        @click.stop="router.visit(route('curriculum.index'))"
                                         variant="outline"
                                         size="sm"
                                     >
@@ -141,8 +183,8 @@ onMounted(fetchBooks);
 
                 <div v-if="!loading && books.length === 0" class="text-center py-12">
                     <FolderOpenIcon class="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 class="mt-2 text-sm font-medium text-gray-900">No curriculum resources</h3>
-                    <p class="mt-1 text-sm text-gray-500">Books will appear here once uploaded.</p>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900">No curriculum found</h3>
+                    <p class="mt-1 text-sm text-gray-500">Create a new curriculum to get started.</p>
                 </div>
 
                 <div

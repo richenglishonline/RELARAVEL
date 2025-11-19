@@ -126,6 +126,34 @@ Route::prefix('v1')->group(function () {
 
         // Search - Global search across all resources
         Route::get('search', [SearchController::class, 'index']);
+
+        // Salary - Super admin only
+        Route::prefix('salary')->middleware('role:super-admin')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\SalaryController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\Api\SalaryController::class, 'store']);
+            Route::get('{salary}', [\App\Http\Controllers\Api\SalaryController::class, 'show']);
+            Route::patch('{salary}', [\App\Http\Controllers\Api\SalaryController::class, 'update']);
+            Route::delete('{salary}', [\App\Http\Controllers\Api\SalaryController::class, 'destroy']);
+        });
+
+        // Curriculum - Super admin only
+        Route::prefix('curriculum')->middleware('role:super-admin')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\CurriculumController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\Api\CurriculumController::class, 'store']);
+            Route::get('{curriculum}', [\App\Http\Controllers\Api\CurriculumController::class, 'show']);
+            Route::patch('{curriculum}', [\App\Http\Controllers\Api\CurriculumController::class, 'update']);
+            Route::delete('{curriculum}', [\App\Http\Controllers\Api\CurriculumController::class, 'destroy']);
+        });
+
+        // Settings - Super admin only
+        Route::prefix('settings')->middleware('role:super-admin')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\SettingController::class, 'index']);
+            Route::post('/', [\App\Http\Controllers\Api\SettingController::class, 'store']);
+            Route::post('bulk-update', [\App\Http\Controllers\Api\SettingController::class, 'bulkUpdate']);
+            Route::get('{setting}', [\App\Http\Controllers\Api\SettingController::class, 'show']);
+            Route::patch('{setting}', [\App\Http\Controllers\Api\SettingController::class, 'update']);
+            Route::delete('{setting}', [\App\Http\Controllers\Api\SettingController::class, 'destroy']);
+        });
     });
 });
 

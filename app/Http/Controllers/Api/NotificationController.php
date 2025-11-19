@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\NotificationCreated;
 use App\Http\Controllers\Controller;
 use App\Models\UserNotification;
 use Illuminate\Http\JsonResponse;
@@ -37,6 +38,9 @@ class NotificationController extends Controller
         ]);
 
         $notification = UserNotification::create($data);
+
+        // Broadcast the notification event
+        broadcast(new NotificationCreated($notification))->toOthers();
 
         return response()->json(['notification' => $notification], JsonResponse::HTTP_CREATED);
     }

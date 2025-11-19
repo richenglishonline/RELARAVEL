@@ -25,6 +25,17 @@ const fetchClass = async () => {
 const formatDate = (date) => date ? new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
 const formatTime = (time) => time ?? '—';
 
+const getScreenshotUrl = (screenshot) => {
+    if (!screenshot) return null;
+    if (screenshot.drive?.link) {
+        return screenshot.drive.link;
+    }
+    if (screenshot.path) {
+        return `/storage/${screenshot.path}`;
+    }
+    return null;
+};
+
 onMounted(fetchClass);
 </script>
 
@@ -84,14 +95,74 @@ onMounted(fetchClass);
                         </div>
                     </div>
 
+                    <!-- Recordings List -->
                     <div v-if="classData.recordings && classData.recordings.length > 0" class="rounded-lg border border-gray-200 bg-white shadow-sm">
-                        <div class="border-b border-gray-200 px-6 py-4"><h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2"><VideoCameraIcon class="h-5 w-5" />Recordings ({{ classData.recordings.length }})</h3></div>
-                        <div class="px-6 py-4 text-center py-8 text-gray-500">Recordings list - to be implemented</div>
+                        <div class="border-b border-gray-200 px-6 py-4">
+                            <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                                <VideoCameraIcon class="h-5 w-5" />
+                                Recordings ({{ classData.recordings.length }})
+                            </h3>
+                        </div>
+                        <div class="px-6 py-4">
+                            <div class="space-y-4">
+                                <div
+                                    v-for="recording in classData.recordings"
+                                    :key="recording.id"
+                                    class="flex items-center justify-between rounded-lg border border-gray-200 p-4 hover:bg-gray-50 transition-colors"
+                                >
+                                    <div class="flex items-center gap-4">
+                                        <VideoCameraIcon class="h-8 w-8 text-gray-400" />
+                                        <div>
+                                            <div class="font-medium text-gray-900">{{ recording.filename ?? 'Untitled Recording' }}</div>
+                                            <div class="text-sm text-gray-500">
+                                                Uploaded {{ formatDate(recording.created_at) }}
+                                                <span v-if="recording.uploader"> by {{ recording.uploader.name }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        @click="router.visit(route('recordings.show', recording.id))"
+                                        variant="outline"
+                                        size="sm"
+                                    >
+                                        View
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
+                    <!-- Screenshots Gallery -->
                     <div v-if="classData.screenshots && classData.screenshots.length > 0" class="rounded-lg border border-gray-200 bg-white shadow-sm">
-                        <div class="border-b border-gray-200 px-6 py-4"><h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2"><PhotoIcon class="h-5 w-5" />Screenshots ({{ classData.screenshots.length }})</h3></div>
-                        <div class="px-6 py-4 text-center py-8 text-gray-500">Screenshots list - to be implemented</div>
+                        <div class="border-b border-gray-200 px-6 py-4">
+                            <h3 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                                <PhotoIcon class="h-5 w-5" />
+                                Screenshots ({{ classData.screenshots.length }})
+                            </h3>
+                        </div>
+                        <div class="px-6 py-4">
+                            <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                                <div
+                                    v-for="screenshot in classData.screenshots"
+                                    :key="screenshot.id"
+                                    class="group relative aspect-video overflow-hidden rounded-lg border border-gray-200 bg-gray-100 cursor-pointer hover:shadow-md transition-shadow"
+                                    @click="router.visit(route('screenshots.show', screenshot.id))"
+                                >
+                                    <img
+                                        v-if="getScreenshotUrl(screenshot)"
+                                        :src="getScreenshotUrl(screenshot)"
+                                        :alt="screenshot.filename"
+                                        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                    />
+                                    <div v-else class="flex items-center justify-center h-full text-gray-400">
+                                        <PhotoIcon class="h-8 w-8" />
+                                    </div>
+                                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity flex items-center justify-center">
+                                        <span class="text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">View</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </template>
             </div>

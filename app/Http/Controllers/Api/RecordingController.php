@@ -74,6 +74,19 @@ class RecordingController extends Controller
         return response()->json(['recording' => $recording->load(['classSchedule', 'attendance'])], JsonResponse::HTTP_CREATED);
     }
 
+    public function update(Request $request, Recording $recording): JsonResponse
+    {
+        $data = $request->validate([
+            'class_id' => ['sometimes', 'exists:classes,id'],
+            'attendance_id' => ['nullable', 'exists:attendances,id'],
+            'drive' => ['nullable', 'string'],
+        ]);
+
+        $recording->update($data);
+
+        return response()->json(['recording' => $recording->fresh()->load(['classSchedule', 'attendance', 'uploader'])]);
+    }
+
     public function destroy(Recording $recording): JsonResponse
     {
         if ($recording->path) {

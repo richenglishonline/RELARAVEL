@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\MessageSent;
 use App\Http\Controllers\Controller;
 use App\Models\Message;
 use App\Models\User;
@@ -54,6 +55,9 @@ class MessageController extends Controller
             'message' => $data['message'],
         ]);
 
-        return response()->json($message, JsonResponse::HTTP_CREATED);
+        // Broadcast the message event
+        broadcast(new MessageSent($message))->toOthers();
+
+        return response()->json($message->load(['sender', 'receiver']), JsonResponse::HTTP_CREATED);
     }
 }

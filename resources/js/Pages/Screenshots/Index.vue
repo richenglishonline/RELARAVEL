@@ -4,7 +4,14 @@ import { Head, usePage, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import api from '@/lib/api';
 import Button from '@/Components/ui/Button.vue';
-import { PhotoIcon } from '@heroicons/vue/24/outline';
+import Dialog from '@/Components/ui/Dialog.vue';
+import DialogHeader from '@/Components/ui/DialogHeader.vue';
+import DialogTitle from '@/Components/ui/DialogTitle.vue';
+import DialogDescription from '@/Components/ui/DialogDescription.vue';
+import DialogFooter from '@/Components/ui/DialogFooter.vue';
+import Input from '@/Components/ui/Input.vue';
+import Label from '@/Components/ui/Label.vue';
+import { PhotoIcon, PlusIcon } from '@heroicons/vue/24/outline';
 
 const page = usePage();
 const role = computed(() => page.props.auth?.user?.role ?? 'teacher');
@@ -14,6 +21,15 @@ const loading = ref(false);
 const rows = ref([]);
 const pagination = ref(null);
 const classOptions = ref([]);
+const uploadDialogOpen = ref(false);
+const uploading = ref(false);
+const fileInput = ref(null);
+
+const uploadForm = reactive({
+    class_id: '',
+    attendance_id: '',
+    file: null,
+});
 
 const filters = reactive({
     class_id: '',
@@ -84,6 +100,52 @@ const getScreenshotUrl = (screenshot) => {
     return null;
 };
 
+const handleFileChange = (event) => {
+    const [file] = event.target.files ?? [];
+    uploadForm.file = file ?? null;
+};
+
+const resetUploadForm = () => {
+    uploadForm.class_id = '';
+    uploadForm.attendance_id = '';
+    uploadForm.file = null;
+    if (fileInput.value) {
+        fileInput.value.value = '';
+    }
+};
+
+const handleUpload = async () => {
+    if (!uploadForm.class_id || !uploadForm.file) {
+        alert('Please select a class and file');
+        return;
+    }
+
+    uploading.value = true;
+    try {
+        const formData = new FormData();
+        formData.append('class_id', uploadForm.class_id);
+        if (uploadForm.attendance_id) {
+            formData.append('attendance_id', uploadForm.attendance_id);
+        }
+        formData.append('file', uploadForm.file);
+
+        await api.post('/screen-shot', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+
+        uploadDialogOpen.value = false;
+        resetUploadForm();
+        await fetchScreenshots();
+    } catch (error) {
+        console.error('Error uploading screenshot:', error);
+        alert(error.response?.data?.message || 'Failed to upload screenshot');
+    } finally {
+        uploading.value = false;
+    }
+};
+
 onMounted(async () => {
     await loadFilters();
     await fetchScreenshots();
@@ -104,13 +166,22 @@ onMounted(async () => {
                         View and manage class screenshots.
                     </p>
                 </div>
-                <button
-                    @click="fetchScreenshots"
-                    class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                    :disabled="loading"
-                >
-                    Refresh
-                </button>
+                <div class="flex items-center gap-3">
+                    <Button
+                        @click="uploadDialogOpen = true"
+                        :disabled="loading"
+                    >
+                        <PlusIcon class="h-4 w-4 mr-2" />
+                        Upload Screenshot
+                    </Button>
+                    <button
+                        @click="fetchScreenshots"
+                        class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                        :disabled="loading"
+                    >
+                        Refresh
+                    </button>
+                </div>
             </div>
         </template>
 
@@ -233,6 +304,77 @@ onMounted(async () => {
                 </div>
             </div>
         </div>
+
+        <!-- Upload Dialog -->
+        <Dialog :open="uploadDialogOpen" @update:open="uploadDialogOpen = $event">
+            <div class="max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Upload Screenshot</DialogTitle>
+                    <DialogDescription>
+                        Upload a screenshot image file.
+                    </DialogDescription>
+                </DialogHeader>
+                <div class="grid gap-4 py-4">
+                    <div>
+                        <Label for="upload-class">Class *</Label>
+                        <select
+                            id="upload-class"
+                            v-model="uploadForm.class_id"
+                            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            required
+                        >
+                            <option value="">Select a class</option>
+                            <option
+                                v-for="classItem in classOptions"
+                                :key="classItem.id"
+                                :value="classItem.id"
+                            >
+                                {{ classItem.student?.name ?? 'Unknown' }} - {{ classItem.start_date }} {{ classItem.start_time }}
+                            </option>
+                        </select>
+                    </div>
+                    <div>
+                        <Label for="upload-attendance">Attendance (Optional)</Label>
+                        <Input
+                            id="upload-attendance"
+                            v-model="uploadForm.attendance_id"
+                            type="text"
+                            placeholder="Attendance ID"
+                        />
+                    </div>
+                    <div>
+                        <Label for="upload-file">Image File *</Label>
+                        <input
+                            ref="fileInput"
+                            id="upload-file"
+                            type="file"
+                            accept="image/*"
+                            @change="handleFileChange"
+                            class="mt-1 block w-full text-sm text-gray-700"
+                            required
+                        />
+                        <p class="mt-1 text-xs text-gray-500">
+                            Maximum size 5MB. Supported formats: PNG, JPEG, JPG, WEBP.
+                        </p>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button
+                        variant="outline"
+                        @click="uploadDialogOpen = false"
+                        :disabled="uploading"
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        @click="handleUpload"
+                        :disabled="uploading || !uploadForm.class_id || !uploadForm.file"
+                    >
+                        {{ uploading ? 'Uploading...' : 'Upload' }}
+                    </Button>
+                </DialogFooter>
+            </div>
+        </Dialog>
     </AuthenticatedLayout>
 </template>
 

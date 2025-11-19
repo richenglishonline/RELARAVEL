@@ -79,6 +79,99 @@ class DashboardController extends Controller
 
             $ratePerHour = 200;
 
+            // Get today's date for filtering
+            $today = Carbon::today();
+
+            // Get active classes (classes that are happening today or in the future)
+            $activeClasses = ClassSchedule::where('teacher_id', $user->id)
+                ->where(function ($query) use ($today) {
+                    $query->whereDate('start_date', '>=', $today)
+                        ->orWhere(function ($q) use ($today) {
+                            $q->where('type', 'reoccurring')
+                                ->where(function ($recurring) use ($today) {
+                                    $dayOfWeek = strtoupper(substr($today->format('l'), 0, 1));
+                                    $dayMap = ['M' => 'Monday', 'T' => 'Tuesday', 'W' => 'Wednesday', 'TH' => 'Thursday', 'F' => 'Friday', 'SAT' => 'Saturday', 'SUN' => 'Sunday'];
+                                    $recurring->whereJsonContains('reoccurring_days', $dayOfWeek);
+                                });
+                        });
+                })
+                ->with(['student', 'book'])
+                ->get()
+                ->map(function ($class) {
+                    return [
+                        'id' => $class->id,
+                        'type' => $class->type,
+                        'start_date' => $class->start_date?->format('Y-m-d'),
+                        'end_date' => $class->end_date?->format('Y-m-d'),
+                        'start_time' => $class->start_time,
+                        'end_time' => $class->end_time,
+                        'startTime' => $class->start_time,
+                        'endTime' => $class->end_time,
+                        'student' => $class->student?->name,
+                        'book' => $class->book?->title,
+                        'reoccurring_days' => $class->reoccurring_days,
+                    ];
+                })
+                ->toArray();
+
+            // Get today's attendance records
+            $todayAttendance = Attendance::where('teacher_id', $user->id)
+                ->whereDate('date', $today)
+                ->with(['student', 'classSchedule'])
+                ->get()
+                ->map(function ($attendance) {
+                    return [
+                        'id' => $attendance->id,
+                        'date' => $attendance->date?->format('Y-m-d'),
+                        'student' => $attendance->student?->name,
+                        'duration' => $attendance->duration,
+                        'minutes_attended' => $attendance->minutes_attended,
+                    ];
+                })
+                ->toArray();
+
+            // Get pending makeup classes
+            $pendingMakeups = ClassSchedule::where('teacher_id', $user->id)
+                ->where('type', 'makeupClass')
+                ->whereDate('start_date', '>=', $today)
+                ->with(['student', 'book'])
+                ->get()
+                ->map(function ($makeup) {
+                    return [
+                        'id' => $makeup->id,
+                        'start_date' => $makeup->start_date?->format('Y-m-d'),
+                        'start_time' => $makeup->start_time,
+                        'startTime' => $makeup->start_time,
+                        'student' => $makeup->student?->name,
+                        'reason' => $makeup->reason,
+                    ];
+                })
+                ->toArray();
+
+            // Get scheduled classes (future scheduled classes, not recurring)
+            $schedule = ClassSchedule::where('teacher_id', $user->id)
+                ->where('type', 'schedule')
+                ->whereDate('start_date', '>=', $today)
+                ->with(['student', 'book'])
+                ->get()
+                ->map(function ($class) {
+                    return [
+                        'id' => $class->id,
+                        'start_date' => $class->start_date?->format('Y-m-d'),
+                        'end_date' => $class->end_date?->format('Y-m-d'),
+                        'start_time' => $class->start_time,
+                        'end_time' => $class->end_time,
+                        'startTime' => $class->start_time,
+                        'endTime' => $class->end_time,
+                        'student' => $class->student?->name,
+                        'book' => $class->book?->title,
+                    ];
+                })
+                ->toArray();
+
+            // Get teacher profile
+            $teacherProfile = $user->teacherProfile;
+
             $stats = [
                 'totalClasses' => ClassSchedule::where('teacher_id', $user->id)->count(),
                 'totalStudents' => ClassSchedule::where('teacher_id', $user->id)->distinct('student_id')->count('student_id'),
@@ -113,7 +206,29 @@ class DashboardController extends Controller
                     }),
             ];
 
-            return response()->json(['role' => 'teacher', 'stats' => $stats]);
+            // Legacy dashboard structure
+            $dashboard = [
+                'students' => ClassSchedule::where('teacher_id', $user->id)->distinct('student_id')->count('student_id'),
+                'activeClass' => $activeClasses,
+                'todayAttendance' => $todayAttendance,
+                'pendingMakeups' => $pendingMakeups,
+                'schedule' => $schedule,
+                'teacher' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $teacherProfile?->phone,
+                    'degree' => $teacherProfile?->degree,
+                    'major' => $teacherProfile?->major,
+                    'english_level' => $teacherProfile?->english_level,
+                ],
+            ];
+
+            return response()->json([
+                'role' => 'teacher',
+                'stats' => $stats,
+                'dashboard' => $dashboard,
+            ]);
         }
 
         return response()->json(['role' => $user->role, 'stats' => []]);

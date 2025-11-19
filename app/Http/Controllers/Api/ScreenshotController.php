@@ -73,6 +73,19 @@ class ScreenshotController extends Controller
         return response()->json(['screenshot' => $screenshot->load(['classSchedule', 'attendance'])], JsonResponse::HTTP_CREATED);
     }
 
+    public function update(Request $request, Screenshot $screenshot): JsonResponse
+    {
+        $data = $request->validate([
+            'class_id' => ['sometimes', 'exists:classes,id'],
+            'attendance_id' => ['nullable', 'exists:attendances,id'],
+            'drive' => ['nullable', 'string'],
+        ]);
+
+        $screenshot->update($data);
+
+        return response()->json(['screenshot' => $screenshot->fresh()->load(['classSchedule', 'attendance', 'uploader'])]);
+    }
+
     public function destroy(Screenshot $screenshot): JsonResponse
     {
         if ($screenshot->path) {

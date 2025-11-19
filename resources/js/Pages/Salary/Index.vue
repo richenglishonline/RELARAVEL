@@ -33,31 +33,31 @@ const loadFilters = async () => {
     }
 };
 
-const fetchPayouts = async () => {
+const fetchSalaries = async () => {
     loading.value = true;
     try {
-        const { data } = await api.get('/payout', { params: filters });
-        payouts.value = data.payouts;
+        const { data } = await api.get('/salary', { params: filters });
+        payouts.value = data.salaries;
         pagination.value = data.pagination;
 
         // Calculate summary
-        const totalAmount = payouts.value.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
-        const totalDuration = payouts.value.reduce((sum, p) => sum + (parseInt(p.duration) || 0), 0);
-        const totalClasses = payouts.value.reduce((sum, p) => sum + (parseInt(p.total_class) || 0), 0);
-        const totalIncentives = payouts.value.reduce((sum, p) => sum + (parseFloat(p.incentives) || 0), 0);
+        const totalAmount = payouts.value.reduce((sum, p) => sum + (parseFloat(p.total_amount) || 0), 0);
+        const totalBase = payouts.value.reduce((sum, p) => sum + (parseFloat(p.base_salary) || 0), 0);
+        const totalBonus = payouts.value.reduce((sum, p) => sum + (parseFloat(p.bonus) || 0), 0);
+        const totalDeduction = payouts.value.reduce((sum, p) => sum + (parseFloat(p.deduction) || 0), 0);
 
         summary.value = {
-            total_payouts: payouts.value.length,
+            total_salaries: payouts.value.length,
             total_amount: totalAmount,
-            total_duration: totalDuration,
-            total_classes: totalClasses,
-            total_incentives: totalIncentives,
+            total_base: totalBase,
+            total_bonus: totalBonus,
+            total_deduction: totalDeduction,
             pending: payouts.value.filter(p => p.status === 'pending').length,
             processing: payouts.value.filter(p => p.status === 'processing').length,
-            completed: payouts.value.filter(p => p.status === 'completed').length,
+            paid: payouts.value.filter(p => p.status === 'paid').length,
         };
     } catch (error) {
-        console.error('Error fetching payouts:', error);
+        console.error('Error fetching salaries:', error);
     } finally {
         loading.value = false;
     }
@@ -67,7 +67,7 @@ const goToPage = (pageNum) => {
     if (!pagination.value) return;
     if (pageNum < 1 || pageNum > pagination.value.totalPages) return;
     filters.page = pageNum;
-    fetchPayouts();
+    fetchSalaries();
 };
 
 const resetFilters = () => {
@@ -76,7 +76,7 @@ const resetFilters = () => {
     filters.start_date = '';
     filters.end_date = '';
     filters.page = 1;
-    fetchPayouts();
+    fetchSalaries();
 };
 
 const formatDate = (dateString) => {
@@ -98,7 +98,7 @@ const formatCurrency = (amount) => {
 
 onMounted(async () => {
     await loadFilters();
-    await fetchPayouts();
+    await fetchSalaries();
 });
 </script>
 
@@ -116,13 +116,12 @@ onMounted(async () => {
                         Manage teacher salaries and payouts with comprehensive analytics.
                     </p>
                 </div>
-                <button
-                    @click="fetchPayouts"
-                    class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                    :disabled="loading"
-                >
-                    Refresh
-                </button>
+                    <Button
+                        @click="fetchSalaries"
+                        :disabled="loading"
+                    >
+                        Refresh
+                    </Button>
             </div>
         </template>
 
@@ -149,9 +148,9 @@ onMounted(async () => {
                                 <ChartBarIcon class="h-8 w-8 text-blue-600" />
                             </div>
                             <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-500">Total Hours</p>
+                                <p class="text-sm font-medium text-gray-500">Total Base Salary</p>
                                 <p class="text-2xl font-semibold text-gray-900">
-                                    {{ summary.total_duration }}h
+                                    {{ formatCurrency(summary.total_base) }}
                                 </p>
                             </div>
                         </div>
@@ -162,9 +161,9 @@ onMounted(async () => {
                                 <ChartBarIcon class="h-8 w-8 text-purple-600" />
                             </div>
                             <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-500">Total Classes</p>
+                                <p class="text-sm font-medium text-gray-500">Total Bonus</p>
                                 <p class="text-2xl font-semibold text-gray-900">
-                                    {{ summary.total_classes }}
+                                    {{ formatCurrency(summary.total_bonus) }}
                                 </p>
                             </div>
                         </div>
@@ -175,9 +174,9 @@ onMounted(async () => {
                                 <BanknotesIcon class="h-8 w-8 text-yellow-600" />
                             </div>
                             <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-500">Total Incentives</p>
+                                <p class="text-sm font-medium text-gray-500">Total Deduction</p>
                                 <p class="text-2xl font-semibold text-gray-900">
-                                    {{ formatCurrency(summary.total_incentives) }}
+                                    {{ formatCurrency(summary.total_deduction) }}
                                 </p>
                             </div>
                         </div>
@@ -216,7 +215,7 @@ onMounted(async () => {
                                 <option value="">All Statuses</option>
                                 <option value="pending">Pending</option>
                                 <option value="processing">Processing</option>
-                                <option value="completed">Completed</option>
+                                <option value="paid">Paid</option>
                             </select>
                         </div>
                         <div>
@@ -242,7 +241,7 @@ onMounted(async () => {
                         <div class="flex items-end gap-3 sm:col-span-2 lg:col-span-4">
                             <button
                                 type="button"
-                                @click="fetchPayouts"
+                                @click="fetchSalaries"
                                 class="flex-1 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                                 :disabled="loading"
                             >
@@ -268,10 +267,10 @@ onMounted(async () => {
                                 <tr class="text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                                     <th scope="col" class="px-6 py-3">Teacher</th>
                                     <th scope="col" class="px-6 py-3">Period</th>
-                                    <th scope="col" class="px-6 py-3">Duration</th>
-                                    <th scope="col" class="px-6 py-3">Classes</th>
-                                    <th scope="col" class="px-6 py-3">Amount</th>
-                                    <th scope="col" class="px-6 py-3">Incentives</th>
+                                    <th scope="col" class="px-6 py-3">Base Salary</th>
+                                    <th scope="col" class="px-6 py-3">Bonus</th>
+                                    <th scope="col" class="px-6 py-3">Deduction</th>
+                                    <th scope="col" class="px-6 py-3">Total Amount</th>
                                     <th scope="col" class="px-6 py-3">Status</th>
                                     <th scope="col" class="px-6 py-3">Actions</th>
                                 </tr>
@@ -282,14 +281,13 @@ onMounted(async () => {
                                         colspan="8"
                                         class="px-6 py-4 text-center text-sm text-gray-500"
                                     >
-                                        No payouts found.
+                                        No salaries found.
                                     </td>
                                 </tr>
                                 <tr
                                     v-for="payout in payouts"
                                     :key="payout.id"
-                                    class="text-sm text-gray-700 hover:bg-gray-50 cursor-pointer"
-                                    @click="router.visit(route('payouts.show', payout.id))"
+                                    class="text-sm text-gray-700 hover:bg-gray-50"
                                 >
                                     <td class="px-6 py-4">
                                         <div class="font-medium text-gray-900">
@@ -300,22 +298,22 @@ onMounted(async () => {
                                         {{ formatDate(payout.start_date) }} - {{ formatDate(payout.end_date) }}
                                     </td>
                                     <td class="px-6 py-4">
-                                        {{ payout.duration ?? '—' }} hours
+                                        {{ formatCurrency(payout.base_salary) }}
                                     </td>
                                     <td class="px-6 py-4">
-                                        {{ payout.total_class ?? '—' }}
+                                        {{ formatCurrency(payout.bonus) }}
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        {{ formatCurrency(payout.deduction) }}
                                     </td>
                                     <td class="px-6 py-4 font-semibold text-gray-900">
-                                        {{ formatCurrency(payout.amount) }}
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        {{ formatCurrency(payout.incentives) }}
+                                        {{ formatCurrency(payout.total_amount) }}
                                     </td>
                                     <td class="px-6 py-4">
                                         <span
                                             :class="[
                                                 'px-2 py-1 text-xs font-medium rounded',
-                                                payout.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                                payout.status === 'paid' ? 'bg-green-100 text-green-800' :
                                                 payout.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
                                                 'bg-gray-100 text-gray-800',
                                             ]"
@@ -325,7 +323,7 @@ onMounted(async () => {
                                     </td>
                                     <td class="px-6 py-4" @click.stop>
                                         <Button
-                                            @click="router.visit(route('payouts.show', payout.id))"
+                                            @click="router.visit(route('salary.index'))"
                                             variant="outline"
                                             size="sm"
                                         >
