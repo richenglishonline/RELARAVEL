@@ -1,13 +1,15 @@
 <script setup>
-import { reactive, ref, onMounted, computed } from 'vue';
-import { Head, usePage, router } from '@inertiajs/vue3';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import api from '@/lib/api';
-import Button from '@/Components/ui/Button.vue';
-import { BanknotesIcon, ChartBarIcon } from '@heroicons/vue/24/outline';
+import { reactive, ref, onMounted, computed } from "vue";
+import { Head, usePage, router } from "@inertiajs/vue3";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
+import api from "@/lib/api";
+import Button from "@/Components/ui/Button.vue";
+import { BanknotesIcon, ChartBarIcon } from "@heroicons/vue/24/outline";
 
 const page = usePage();
-const isSuperAdmin = computed(() => page.props.auth?.user?.role === 'super-admin');
+const isSuperAdmin = computed(
+    () => page.props.auth?.user?.role === "super-admin"
+);
 
 const loading = ref(false);
 const payouts = ref([]);
@@ -16,20 +18,20 @@ const teacherOptions = ref([]);
 const summary = ref(null);
 
 const filters = reactive({
-    teacher_id: '',
-    status: '',
-    start_date: '',
-    end_date: '',
+    teacher_id: "",
+    status: "",
+    start_date: "",
+    end_date: "",
     page: 1,
     limit: 20,
 });
 
 const loadFilters = async () => {
     try {
-        const teachersRes = await api.get('/dashboard/teachers');
+        const teachersRes = await api.get("/dashboard/teachers");
         teacherOptions.value = teachersRes.data;
     } catch (error) {
-        console.error('Error loading filters:', error);
+        console.error("Error loading filters:", error);
     }
 };
 
@@ -71,28 +73,28 @@ const goToPage = (pageNum) => {
 };
 
 const resetFilters = () => {
-    filters.teacher_id = '';
-    filters.status = '';
-    filters.start_date = '';
-    filters.end_date = '';
+    filters.teacher_id = "";
+    filters.status = "";
+    filters.start_date = "";
+    filters.end_date = "";
     filters.page = 1;
     fetchSalaries();
 };
 
 const formatDate = (dateString) => {
-    if (!dateString) return '—';
-    return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
+    if (!dateString) return "—";
+    return new Date(dateString).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
     });
 };
 
 const formatCurrency = (amount) => {
-    if (!amount) return '$0.00';
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
+    if (!amount) return "$0.00";
+    return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
     }).format(amount);
 };
 
@@ -109,11 +111,14 @@ onMounted(async () => {
         <template #header>
             <div class="flex items-center justify-between">
                 <div>
-                    <h2 class="text-xl font-semibold leading-tight text-gray-800">
+                    <h2
+                        class="text-xl font-semibold leading-tight text-gray-800"
+                    >
                         Salary Management
                     </h2>
                     <p class="text-sm text-gray-500">
-                        Manage teacher salaries and payouts with comprehensive analytics.
+                        Manage teacher salaries and payouts with comprehensive
+                        analytics.
                     </p>
                 </div>
                     <Button
@@ -128,21 +133,30 @@ onMounted(async () => {
         <div class="py-10">
             <div class="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
                 <!-- Summary Cards -->
-                <div v-if="summary" class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                    <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+                <div
+                    v-if="summary"
+                    class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4"
+                >
+                    <div
+                        class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm"
+                    >
                         <div class="flex items-center">
                             <div class="flex-shrink-0">
                                 <BanknotesIcon class="h-8 w-8 text-green-600" />
                             </div>
                             <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-500">Total Amount</p>
+                                <p class="text-sm font-medium text-gray-500">
+                                    Total Amount
+                                </p>
                                 <p class="text-2xl font-semibold text-gray-900">
                                     {{ formatCurrency(summary.total_amount) }}
                                 </p>
                             </div>
                         </div>
                     </div>
-                    <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+                    <div
+                        class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm"
+                    >
                         <div class="flex items-center">
                             <div class="flex-shrink-0">
                                 <ChartBarIcon class="h-8 w-8 text-blue-600" />
@@ -155,7 +169,9 @@ onMounted(async () => {
                             </div>
                         </div>
                     </div>
-                    <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+                    <div
+                        class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm"
+                    >
                         <div class="flex items-center">
                             <div class="flex-shrink-0">
                                 <ChartBarIcon class="h-8 w-8 text-purple-600" />
@@ -168,10 +184,14 @@ onMounted(async () => {
                             </div>
                         </div>
                     </div>
-                    <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+                    <div
+                        class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm"
+                    >
                         <div class="flex items-center">
                             <div class="flex-shrink-0">
-                                <BanknotesIcon class="h-8 w-8 text-yellow-600" />
+                                <BanknotesIcon
+                                    class="h-8 w-8 text-yellow-600"
+                                />
                             </div>
                             <div class="ml-4">
                                 <p class="text-sm font-medium text-gray-500">Total Deduction</p>
@@ -184,10 +204,16 @@ onMounted(async () => {
                 </div>
 
                 <!-- Filters -->
-                <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-                    <form class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div
+                    class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm"
+                >
+                    <form
+                        class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+                    >
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">
+                            <label
+                                class="block text-sm font-medium text-gray-700"
+                            >
                                 Teacher
                             </label>
                             <select
@@ -205,7 +231,9 @@ onMounted(async () => {
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">
+                            <label
+                                class="block text-sm font-medium text-gray-700"
+                            >
                                 Status
                             </label>
                             <select
@@ -219,7 +247,9 @@ onMounted(async () => {
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">
+                            <label
+                                class="block text-sm font-medium text-gray-700"
+                            >
                                 Start Date
                             </label>
                             <input
@@ -229,7 +259,9 @@ onMounted(async () => {
                             />
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">
+                            <label
+                                class="block text-sm font-medium text-gray-700"
+                            >
                                 End Date
                             </label>
                             <input
@@ -238,7 +270,9 @@ onMounted(async () => {
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                             />
                         </div>
-                        <div class="flex items-end gap-3 sm:col-span-2 lg:col-span-4">
+                        <div
+                            class="flex items-end gap-3 sm:col-span-2 lg:col-span-4"
+                        >
                             <button
                                 type="button"
                                 @click="fetchSalaries"
@@ -260,7 +294,9 @@ onMounted(async () => {
                 </div>
 
                 <!-- Payouts Table -->
-                <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+                <div
+                    class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
+                >
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
@@ -291,11 +327,15 @@ onMounted(async () => {
                                 >
                                     <td class="px-6 py-4">
                                         <div class="font-medium text-gray-900">
-                                            {{ payout.teacher?.name ?? 'Unknown' }}
+                                            {{
+                                                payout.teacher?.name ??
+                                                "Unknown"
+                                            }}
                                         </div>
                                     </td>
                                     <td class="px-6 py-4">
-                                        {{ formatDate(payout.start_date) }} - {{ formatDate(payout.end_date) }}
+                                        {{ formatDate(payout.start_date) }} -
+                                        {{ formatDate(payout.end_date) }}
                                     </td>
                                     <td class="px-6 py-4">
                                         {{ formatCurrency(payout.base_salary) }}
@@ -354,7 +394,10 @@ onMounted(async () => {
                             <button
                                 @click="goToPage(pagination.page + 1)"
                                 class="rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-50"
-                                :disabled="loading || pagination.page === pagination.totalPages"
+                                :disabled="
+                                    loading ||
+                                    pagination.page === pagination.totalPages
+                                "
                             >
                                 Next
                             </button>
@@ -365,4 +408,3 @@ onMounted(async () => {
         </div>
     </AuthenticatedLayout>
 </template>
-
