@@ -1,55 +1,79 @@
-import '../css/app.css';
-import './bootstrap';
+// resources/js/app.js
+import "../css/app.css";
+import "./bootstrap";
 
-import { createInertiaApp } from '@inertiajs/vue3';
-import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
-import { createApp, h } from 'vue';
-import { Ziggy } from './ziggy';
-import { route } from 'ziggy-js';
-import AOS from 'aos';
+import { createInertiaApp } from "@inertiajs/vue3";
+import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
+import { createApp, h } from "vue";
+import { Ziggy } from "./ziggy";
+import { route } from "ziggy-js";
+import AOS from "aos";
+import "aos/dist/aos.css";
+import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 
-// Initialize Ziggy globally so route() can use it automatically
-if (typeof window !== 'undefined') {
+import Swal from "sweetalert2";
+
+const appName = import.meta.env.VITE_APP_NAME || "Rich English Online";
+
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            refetchOnWindowFocus: false,
+            retry: 1,
+            staleTime: 5 * 60 * 1000,
+            cacheTime: 10 * 60 * 1000,
+        },
+        mutations: {
+            onError: (error) => {
+                console.error("Mutation error:", error);
+            },
+        },
+    },
+});
+
+if (typeof window !== "undefined") {
     window.Ziggy = Ziggy;
-    // Override URL to use relative paths (empty string = relative)
-    window.Ziggy.url = '';
+    window.Ziggy.url = "";
     window.Ziggy.absolute = false;
 }
 
-// Make route() function available globally - always use relative URLs
 window.route = (name, params) => {
-    // Always use relative URLs (absolute = false)
     return route(name, params, false, window.Ziggy);
 };
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
-
 createInertiaApp({
-    title: (title) => `${title} - ${appName}`,
+    title: (title) => `${title} ${appName}`,
     resolve: (name) =>
         resolvePageComponent(
             `./Pages/${name}.vue`,
-            import.meta.glob('./Pages/**/*.vue'),
+            import.meta.glob("./Pages/**/*.vue")
         ),
+
     setup({ el, App, props, plugin }) {
         const app = createApp({ render: () => h(App, props) });
-        
-        // Make route() available globally in Vue templates
+
         app.config.globalProperties.route = route;
-        
-        // Initialize AOS
+
         AOS.init({
             duration: 800,
-            easing: 'ease-in-out',
+            easing: "ease-in-out",
             once: true,
             mirror: false,
+            offset: 120,
+            delay: 0,
         });
-        
-        return app
-            .use(plugin)
-            .mount(el);
+
+        // Apply Inertia plugin first
+        app.use(plugin);
+
+        // Then Vue Query plugin
+        app.use(VueQueryPlugin, { queryClient });
+
+        return app.mount(el);
     },
+
     progress: {
-        color: '#4B5563',
+        color: "#4B5563",
+        showSpinner: true,
     },
 });

@@ -17,75 +17,94 @@ use Illuminate\Validation\Rule;
 class TeacherController extends Controller
 {
     public function index(Request $request): JsonResponse
-    {
-        // Determine which role to filter by
-        $role = $request->string('role')->toString();
-        
-        if ($role === 'admin') {
-            $query = User::admins()->with('teacherProfile.assignedAdmin');
-        } else {
-            // Default to teachers if no role specified or role is 'teacher'
-            $query = User::teachers()->with('teacherProfile.assignedAdmin');
-        }
+{
+    $auth = $request->user();
 
-        if ($country = $request->string('country')->toString()) {
-            $query->where('country', $country);
-        }
-
-        if ($request->filled('accepted')) {
-            $query->where('accepted', filter_var($request->input('accepted'), FILTER_VALIDATE_BOOLEAN));
-        }
-
-        $profileFilters = [
-            'degree' => 'degree',
-            'major' => 'major',
-            'englishLevel' => 'english_level',
-            'hasWebcam' => 'has_webcam',
-            'hasBackupInternet' => 'has_backup_internet',
-            'hasBackupPower' => 'has_backup_power',
-            'hasHeadset' => 'has_headset',
-        ];
-
-        foreach ($profileFilters as $inputKey => $column) {
-            if ($request->filled($inputKey)) {
-                $value = $request->input($inputKey);
-
-                $query->whereHas('teacherProfile', function ($builder) use ($column, $value): void {
-                    if (is_bool($value) || $value === 'true' || $value === 'false') {
-                        $builder->where($column, filter_var($value, FILTER_VALIDATE_BOOLEAN));
-                    } else {
-                        $builder->where($column, $value);
-                    }
-                });
-            }
-        }
-
-        if ($search = $request->string('search')->toString()) {
-            $query->where(function ($builder) use ($search): void {
-                $builder->where('name', 'like', '%'.$search.'%')
-                    ->orWhere('email', 'like', '%'.$search.'%')
-                    ->orWhereHas('teacherProfile', function ($profileQuery) use ($search): void {
-                        $profileQuery->where('first_name', 'like', '%'.$search.'%')
-                            ->orWhere('last_name', 'like', '%'.$search.'%');
-                    });
-            });
-        }
-
-        $limit = max(1, min((int) $request->integer('limit', 10), 100));
-        $page = (int) $request->integer('page', 1);
-
-        $paginator = $query->orderByDesc('created_at')->paginate($limit, ['*'], 'page', $page);
+    // If teacher, always return only his own data
+    if ($auth->role === 'teacher') {
+        $teacher = User::with('teacherProfile.assignedAdmin')
+            ->where('id', $auth->id)
+            ->first();
 
         return response()->json([
-            'teachers' => $paginator->items(),
+            'teachers' => [$teacher],
             'pagination' => [
-                'total' => $paginator->total(),
-                'page' => $paginator->currentPage(),
-                'limit' => $paginator->perPage(),
-                'totalPages' => $paginator->lastPage(),
+                'total' => 1,
+                'page' => 1,
+                'limit' => 1,
+                'totalPages' => 1,
             ],
         ]);
     }
+
+    // If admin: allow filters and full list
+    $role = $request->string('role')->toString();
+
+    if ($role === 'admin') {
+        $query = User::admins()->with('teacherProfile.assignedAdmin');
+    } else {
+        $query = User::teachers()->with('teacherProfile.assignedAdmin');
+    }
+
+    if ($country = $request->string('country')->toString()) {
+        $query->where('country', $country);
+    }
+
+    if ($request->filled('accepted')) {
+        $query->where('accepted', filter_var($request->input('accepted'), FILTER_VALIDATE_BOOLEAN));
+    }
+
+    $profileFilters = [
+        'degree' => 'degree',
+        'major' => 'major',
+        'englishLevel' => 'english_level',
+        'hasWebcam' => 'has_webcam',
+        'hasBackupInternet' => 'has_backup_internet',
+        'hasBackupPower' => 'has_backup_power',
+        'hasHeadset' => 'has_headset',
+    ];
+
+    foreach ($profileFilters as $inputKey => $column) {
+        if ($request->filled($inputKey)) {
+            $value = $request->input($inputKey);
+
+            $query->whereHas('teacherProfile', function ($builder) use ($column, $value): void {
+                if (is_bool($value) || $value === 'true' || $value === 'false') {
+                    $builder->where($column, filter_var($value, FILTER_VALIDATE_BOOLEAN));
+                } else {
+                    $builder->where($column, $value);
+                }
+            });
+        }
+    }
+
+    if ($search = $request->string('search')->toString()) {
+        $query->where(function ($builder) use ($search): void {
+            $builder->where('name', 'like', '%'.$search.'%')
+                ->orWhere('email', 'like', '%'.$search.'%')
+                ->orWhereHas('teacherProfile', function ($profileQuery) use ($search): void {
+                    $profileQuery->where('first_name', 'like', '%'.$search.'%')
+                        ->orWhere('last_name', 'like', '%'.$search.'%');
+                });
+        });
+    }
+
+    $limit = max(1, min((int) $request->integer('limit', 10), 100));
+    $page = (int) $request->integer('page', 1);
+
+    $paginator = $query->orderByDesc('created_at')->paginate($limit, ['*'], 'page', $page);
+
+    return response()->json([
+        'teachers' => $paginator->items(),
+        'pagination' => [
+            'total' => $paginator->total(),
+            'page' => $paginator->currentPage(),
+            'limit' => $paginator->perPage(),
+            'totalPages' => $paginator->lastPage(),
+        ],
+    ]);
+}
+
 
     public function show(User $user): JsonResponse
     {
